@@ -152,12 +152,12 @@ func main() {
 		removeJoined := input(reader)
 		if removeJoined != "" {
 			remove := strings.Split(removeJoined, ",")
-			var newEvents *Map
+			var newEvents []Map
 			for _, pop := range remove {
 				for _, event := range universalConfig.Maps {
 					if event.Activator == pop {
 						logOK("Deleted event: " + event.Activator)
-						event = nil
+						event = Map{}
 					}
 					newEvents = append(newEvents, event)
 				}
