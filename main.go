@@ -221,6 +221,7 @@ func sniper(client *discordgo.Session, message *discordgo.MessageCreate) {
 			}
 		}
 		if strings.Contains(message.Content, event.Activator) {
+			time.Sleep(event.Delay * time.Second)
 			client.ChannelMessageSend(message.ChannelID, event.Reply)
 			logOK(fmt.Sprint("Sniped event: ", event.Activator, " in ", eventSuccessString(client, message), " with reply: ", event.Reply))
 		}
