@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -37,6 +38,7 @@ type Config struct {
 type Map struct {
 	Activator string
 	Reply     string
+	Delay     int
 	Ignored   []string `yaml:",flow"`
 }
 
@@ -194,7 +196,7 @@ func main() {
 func formatEvents() string {
 	var concat string
 	for _, event := range universalConfig.Maps {
-		concat = fmt.Sprint(concat, " [", event.Activator, ":", event.Reply, "]")
+		concat = fmt.Sprint(concat, " [", event.Activator, ":", event.Reply, "| Delay: ", event.Delay, ", Ignored Guilds: ", event.Ignored, "]")
 	}
 	return strings.TrimSpace(concat)
 }
@@ -245,10 +247,17 @@ func snipeAdd(reader *bufio.Reader, client *discordgo.Session) {
 	logPrint("Please input guilds that this snipe will be ignored in, separated by a comma , ")
 	joinGuilds := input(reader)
 	guilds := strings.Split(joinGuilds, ",")
-	addEntry(message, reply, guilds)
+	logPrint("Finally specify delay in seconds.")
+	delayRaw := input(reader)
+	delay, err := strconv.Atoi(delayRaw)
+	if err != nil {
+		logError("Not a valid delay. Setting default 5s")
+		delay = 5
+	}
+	addEntry(message, reply, guilds, delay)
 }
 
-func addEntry(activator string, reply string, guilds []string) {
-	newMap := Map{Activator: activator, Reply: reply, Ignored: guilds}
+func addEntry(activator string, reply string, guilds []string, delay int) {
+	newMap := Map{Activator: activator, Reply: reply, Ignored: guilds, Delay: delay}
 	universalConfig.Maps = append(universalConfig.Maps, newMap)
 }
