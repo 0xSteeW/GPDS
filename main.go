@@ -124,11 +124,6 @@ func main() {
 	}
 	readConfig(path)
 	logOK("Configuration loaded successfully.")
-	if universalConfig.Maps == nil {
-		logError("No events found.")
-	} else {
-		client.AddHandler(sniper)
-	}
 	token := universalConfig.Token
 	if token == "" {
 		logPrint("Token is empty. Please input your discord token to proceed.")
@@ -141,6 +136,12 @@ func main() {
 		logError("Could not create session with token.")
 		return
 	}
+	if universalConfig.Maps == nil {
+		logError("No events found.")
+	} else {
+		client.AddHandler(sniper)
+	}
+
 	err = client.Open()
 	if err != nil {
 		logError("Could not open session.")
