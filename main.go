@@ -117,7 +117,7 @@ func writeConfig(path string, uc *Config) {
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 	logPrint("Welcome to General Purpose Discord Sniper")
-	logOK("Made by 0xSteeW")
+	logPrint("Made by 0xSteeW")
 	logPrint("Please input config file path. If none is specified, the default path will be ./config.yaml . In case it doesn't exist, it will be created.")
 	path := input(reader)
 	if path == "" {
@@ -205,6 +205,9 @@ func eventSuccessString(client *discordgo.Session, message *discordgo.MessageCre
 }
 
 func sniper(client *discordgo.Session, message *discordgo.MessageCreate) {
+	if message.Author.ID == client.State.User.ID {
+		return
+	}
 	for _, event := range universalConfig.Maps {
 		if event.Activator == "" {
 			continue
