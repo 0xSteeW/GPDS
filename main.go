@@ -18,7 +18,7 @@ import (
 )
 
 func logError(err string) {
-	color.Red("[Errors] %s : %s\n", time.Now().String, err)
+	color.Red("[Errors] %s : %s\n", time.Now(), err)
 }
 
 func logOK(str string) {
@@ -117,6 +117,7 @@ func writeConfig(path string, uc *Config) {
 func main() {
 	reader := bufio.NewReader(os.Stdin)
 	logPrint("Welcome to General Purpose Discord Sniper")
+	logOK("Made by 0xSteeW")
 	logPrint("Please input config file path. If none is specified, the default path will be ./config.yaml . In case it doesn't exist, it will be created.")
 	path := input(reader)
 	if path == "" {
@@ -137,6 +138,7 @@ func main() {
 		return
 	}
 	logPrint("Do you want to use stored events? y/n")
+	logPrint(fmt.Sprint("Current events: ", formatEvents()))
 	option := input(reader)
 	if universalConfig.Maps == nil {
 		option = "n"
@@ -204,6 +206,9 @@ func eventSuccessString(client *discordgo.Session, message *discordgo.MessageCre
 
 func sniper(client *discordgo.Session, message *discordgo.MessageCreate) {
 	for _, event := range universalConfig.Maps {
+		if event.Activator == "" {
+			continue
+		}
 		for _, ID := range event.Ignored {
 			if ID == message.GuildID {
 				logPrint(fmt.Sprint("Ignoring event ", event.Activator, " in ", eventSuccessString(client, message)))
