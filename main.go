@@ -7,7 +7,9 @@ import (
 	"log"
 	"os"
 	"runtime"
+	"signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -122,6 +124,11 @@ func main() {
 	}
 	readConfig(path)
 	logOK("Configuration loaded successfully.")
+	if universalConfig.Maps == nil {
+		logError("No events found.")
+	} else {
+		client.AddHandler(sniper)
+	}
 	token := universalConfig.Token
 	if token == "" {
 		logPrint("Token is empty. Please input your discord token to proceed.")
@@ -140,9 +147,52 @@ func main() {
 		return
 	}
 	logOK(fmt.Sprint("Welcome to GPDS, ", client.State.User.String(), "!"))
-	snipeAdd(reader, client)
-	writeConfig(path, universalConfig)
-	logOK("Success adding events. Please restart the sniper to save changes.")
+	if universalConfig.Maps == nil {
+		logPrint("Please insert some events:")
+		addMultiple(reader, client)
+		writeConfig(path, universalConfig)
+		logOK("Success adding events. Please restart the sniper to save changes.")
+		return
+	}
+	logOK("Listening to events...")
+	logPrint("Press Ctrl+C to quit.")
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	<-quit
+	logOK("Quitting GPDS...")
+	client.Close()
+}
+
+func eventSuccessString(client *discordgo.Session, message *discordgo.MessageCreate) string {
+	guild, _ := client.Guild(message.GuildID)
+	return guild.Name
+}
+
+func sniper(client *discordgo.Session, message *discordgo.MessageCreate) {
+	for _, event := range universalConfig.Maps {
+		for _, ID := range event.Ignored {
+			if ID == message.GuildID {
+				logPrint(fmt.Sprint("Ignoring event ", event.Activator, " in ", eventSuccessString(client, message)))
+				return
+			}
+		}
+		if strings.Contains(message.Content, event.Activator) {
+			client.ChannelMessageSend(message.ChannelID, event.Reply)
+			logOK(fmt.Sprint("Sniped event: ", event.Activator, " in ", eventSuccessString(client, message), " with reply: ", event.Reply))
+		}
+	}
+}
+
+func addMultiple(reader *bufio.Reader, client *discordgo.Session) {
+	logPrint("Do you want to add another event? y/n")
+	option := input(reader)
+	switch strings.ToLower(option) {
+	case "y":
+		snipeAdd(reader, client)
+		addMultiple(reader, client)
+	case "n":
+		return
+	}
 }
 
 func snipeAdd(reader *bufio.Reader, client *discordgo.Session) {
