@@ -136,25 +136,50 @@ func main() {
 		logError("Could not create session with token.")
 		return
 	}
+	logPrint("Do you want to use stored events? y/n")
+	option := input(reader)
 	if universalConfig.Maps == nil {
-		logError("No events found.")
-	} else {
-		client.AddHandler(sniper)
+		option = "n"
 	}
+	switch strings.ToLower(option) {
+	case "y":
+		client.AddHandler(sniper)
+	case "n":
+		logPrint("Please input the name of the events you want to remove (left side parameter) separated by a comma or leave blank to just add new ones.")
+		logPrint("Please remember it is case and space sensitive.")
+		logPrint("Current events:")
+		logPrint(formatEvents())
+		removeJoined := input(reader)
+		if removeJoined != "" {
+			remove := strings.Split(removeJoined, ",")
+			var newEvents *Map
+			for _, pop := range remove {
+				for _, event := range universalConfig.Maps {
+					if event.Activator == pop {
+						logOK("Deleted event: " + event.Activator)
+						event = nil
+					}
+					newEvents = append(newEvents, event)
+				}
+			}
+			universalConfig.Maps = newEvents
+			logOK("Deleted specified events.")
+		} else {
+			logOK("Not deleting any event.")
+		}
+		logPrint("Please add the new events:")
+		addMultiple(reader, client)
+		writeConfig(path, universalConfig)
+		readConfig(path)
+		client.AddHandler(sniper)
 
+	}
 	err = client.Open()
 	if err != nil {
 		logError("Could not open session.")
 		return
 	}
 	logOK(fmt.Sprint("Welcome to GPDS, ", client.State.User.String(), "!"))
-	if universalConfig.Maps == nil {
-		logPrint("Please insert some events:")
-		addMultiple(reader, client)
-		writeConfig(path, universalConfig)
-		logOK("Success adding events. Please restart the sniper to save changes.")
-		return
-	}
 	logOK("Listening to events...")
 	logPrint("Press Ctrl+C to quit.")
 	quit := make(chan os.Signal, 1)
@@ -162,6 +187,14 @@ func main() {
 	<-quit
 	logOK("Quitting GPDS...")
 	client.Close()
+}
+
+func formatEvents() string {
+	var concat string
+	for _, event := range universalConfig.Maps {
+		concat = fmt.Sprint(concat, " [", event.Activator, ":", event.Reply, "]")
+	}
+	return strings.TrimSpace(concat)
 }
 
 func eventSuccessString(client *discordgo.Session, message *discordgo.MessageCreate) string {
@@ -204,31 +237,10 @@ func snipeAdd(reader *bufio.Reader, client *discordgo.Session) {
 	logPrint("Please input guilds that this snipe will be ignored in, separated by a comma , ")
 	joinGuilds := input(reader)
 	guilds := strings.Split(joinGuilds, ",")
-	checkedGuilds := checkGuilds(client, guilds)
-	addEntry(message, reply, checkedGuilds)
+	addEntry(message, reply, guilds)
 }
 
-func guildsToString(guilds []*discordgo.Guild) []string {
-	var ids []string
-	for _, guild := range guilds {
-		ids = append(ids, guild.ID)
-	}
-	return ids
-}
-
-func addEntry(activator string, reply string, guilds []*discordgo.Guild) {
-	newMap := Map{Activator: activator, Reply: reply, Ignored: guildsToString(guilds)}
+func addEntry(activator string, reply string, guilds []string) {
+	newMap := Map{Activator: activator, Reply: reply, Ignored: guilds}
 	universalConfig.Maps = append(universalConfig.Maps, newMap)
-}
-
-func checkGuilds(client *discordgo.Session, guildIDS []string) []*discordgo.Guild {
-	var guilds []*discordgo.Guild
-	for _, guildID := range guildIDS {
-		guild, err := client.Guild(guildID)
-		if err != nil {
-			continue
-		}
-		guilds = append(guilds, guild)
-	}
-	return guilds
 }
