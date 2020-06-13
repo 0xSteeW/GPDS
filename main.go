@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -220,7 +221,12 @@ func sniper(client *discordgo.Session, message *discordgo.MessageCreate) {
 				return
 			}
 		}
-		if strings.Contains(message.Content, event.Activator) {
+		activate, err := regexp.Compile(event.Activator)
+		if err != nil {
+			logError(fmt.Sprint("Could not parse as RegEx! ", err))
+			return
+		}
+		if activate.MatchString(message.Content) {
 			time.Sleep(time.Duration(event.Delay) * time.Second)
 			client.ChannelMessageSend(message.ChannelID, event.Reply)
 			logOK(fmt.Sprint("Sniped event: ", event.Activator, " in ", eventSuccessString(client, message), " with reply: ", event.Reply))
